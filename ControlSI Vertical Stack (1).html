@@ -1,0 +1,866 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ControlSI Vertical Stack</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@500;600;700;800&display=swap">
+
+<style>
+/* Consola de sala de control: bandas a todo el ancho, esquinas vivas, retícula visible,
+   y color reservado para señal según la filosofía HMI de la ISA-101. Oscuro por defecto. */
+:root{
+  --bg:#0A0D11;
+  --panel:#111519;
+  --panel-2:#161B21;
+  --panel-3:#1E252D;
+  --fg:#E7EBEF;
+  --fg-mid:#99A5B2;
+  --fg-dim:#68757F;
+  --line:#222A33;
+  --line-2:#303A45;
+  --blue:#3D7FE0;
+  --blue-dim:#16304F;
+  --amber:#E8A33D;
+  --teal:#2BB8A8;
+  --red:#E8503C;
+  --display:"Saira Condensed","Arial Narrow Bold","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --maxw:1240px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#E9ECF0;
+    --panel:#FFFFFF;
+    --panel-2:#F4F6F9;
+    --panel-3:#E3E8ED;
+    --fg:#0E1317;
+    --fg-mid:#49555F;
+    --fg-dim:#78858F;
+    --line:#D3DAE1;
+    --line-2:#BFC8D1;
+    --blue:#0B4FB0;
+    --blue-dim:#DCE7F8;
+    --amber:#A96A12;
+    --teal:#0C7F73;
+    --red:#CC3A24;
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#E9ECF0;
+  --panel:#FFFFFF;
+  --panel-2:#F4F6F9;
+  --panel-3:#E3E8ED;
+  --fg:#0E1317;
+  --fg-mid:#49555F;
+  --fg-dim:#78858F;
+  --line:#D3DAE1;
+  --line-2:#BFC8D1;
+  --blue:#0B4FB0;
+  --blue-dim:#DCE7F8;
+  --amber:#A96A12;
+  --teal:#0C7F73;
+  --red:#CC3A24;
+  color-scheme:light;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--fg);
+  font-family:var(--body);font-size:16px;line-height:1.58;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+.wrap{
+  max-width:var(--maxw);margin-inline:auto;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+h1,h2,h3,h4{font-family:var(--display);font-weight:700;line-height:.96;margin:0;text-wrap:balance;text-transform:uppercase;letter-spacing:.005em}
+p{margin:0}
+a{color:inherit}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tag{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-dim)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+::selection{background:var(--blue);color:#fff}
+
+/* marcas de registro en las esquinas de los paneles */
+.mk{position:relative}
+.mk::before,.mk::after{
+  content:"";position:absolute;width:7px;height:7px;pointer-events:none;
+  border-color:var(--line-2);border-style:solid;
+}
+.mk::before{top:-1px;left:-1px;border-width:1px 0 0 1px}
+.mk::after{bottom:-1px;right:-1px;border-width:0 1px 1px 0}
+
+/* ---------- barra superior ---------- */
+.nav{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:55;
+  background:color-mix(in srgb,var(--bg) 90%,transparent);
+  backdrop-filter:blur(12px) saturate(1.5);
+  border-bottom:1px solid var(--line);
+}
+.nav .wrap{display:flex;align-items:center;gap:18px;min-height:58px;padding-block:9px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:0;text-decoration:none;font-family:var(--display);font-size:25px;font-weight:800;letter-spacing:-.005em;line-height:1}
+.brand i{font-style:normal}
+.brand b{background:var(--red);color:#fff;padding:1px 6px 2px;margin-left:2px;font-weight:800}
+.nlinks{display:flex;gap:2px;margin-left:auto;align-items:center;flex-wrap:wrap}
+.nlinks a:not(.btn){
+  text-decoration:none;font-family:var(--mono);font-size:11.5px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--fg-mid);
+  padding:8px 11px;position:relative;
+}
+.nlinks a:not(.btn)::after{
+  content:"";position:absolute;left:11px;right:11px;bottom:4px;height:1px;
+  background:var(--blue);transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(.2,.7,.3,1);
+}
+.nlinks a:not(.btn):hover{color:var(--fg)}
+.nlinks a:not(.btn):hover::after{transform:scaleX(1)}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;text-decoration:none;cursor:pointer;
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  padding:11px 17px;border:1px solid transparent;background:none;position:relative;overflow:hidden;
+}
+.btn span{position:relative;z-index:1}
+.btn svg{width:13px;height:13px;flex:none;position:relative;z-index:1;transition:transform .24s cubic-bezier(.2,.7,.3,1)}
+.btn:hover svg{transform:translateX(4px)}
+.btn--p{background:var(--red);color:#fff}
+.btn--p::before{
+  content:"";position:absolute;inset:0;background:var(--fg);transform:translateY(101%);
+  transition:transform .3s cubic-bezier(.2,.7,.3,1);
+}
+.btn--p:hover::before{transform:translateY(0)}
+.btn--p:hover{color:var(--bg)}
+.btn--g{border-color:var(--line-2);color:var(--fg)}
+.btn--g::before{
+  content:"";position:absolute;inset:0;background:var(--panel-3);transform:scaleX(0);transform-origin:left;
+  transition:transform .3s cubic-bezier(.2,.7,.3,1);
+}
+.btn--g:hover::before{transform:scaleX(1)}
+.btn--sm{padding:9px 14px;font-size:11px}
+
+/* ---------- hero ---------- */
+.hero{position:relative;border-bottom:1px solid var(--line);overflow:hidden;background:var(--bg)}
+#sig{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero .wrap{position:relative;z-index:2;padding-block:clamp(44px,6.5vw,88px)}
+.hgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,400px);gap:clamp(30px,4.5vw,58px);align-items:end}
+.hmeta{display:flex;align-items:center;gap:9px;margin-bottom:18px;flex-wrap:wrap}
+.dot{width:6px;height:6px;background:var(--teal);flex:none}
+.dot.live{animation:bl 2.2s steps(1) infinite}
+@keyframes bl{0%,60%{opacity:1}61%,100%{opacity:.25}}
+h1{font-size:clamp(52px,9.4vw,124px);letter-spacing:-.012em;font-weight:800}
+h1 .ln{display:block;overflow:hidden}
+h1 .ln>span{display:block;transform:translateY(102%);animation:up .78s cubic-bezier(.16,1,.3,1) forwards}
+h1 .ln:nth-child(2)>span{animation-delay:.1s}
+h1 .ln:nth-child(3)>span{animation-delay:.2s}
+@keyframes up{to{transform:translateY(0)}}
+h1 em{font-style:normal;color:var(--blue)}
+.lede{
+  margin-top:24px;font-size:clamp(15px,1.6vw,18px);color:var(--fg-mid);
+  max-width:56ch;line-height:1.56;border-left:2px solid var(--line-2);padding-left:18px;
+}
+.lede b{color:var(--fg);font-weight:600}
+.cta{display:flex;gap:10px;margin-top:28px;flex-wrap:wrap}
+
+/* pila ISA-95 */
+.stk{display:flex;flex-direction:column;border:1px solid var(--line);background:var(--panel);min-width:0}
+.stk-h{display:flex;justify-content:space-between;align-items:center;padding:10px 13px;border-bottom:1px solid var(--line);background:var(--panel-2);gap:10px;flex-wrap:wrap}
+.lvl{
+  display:grid;grid-template-columns:38px minmax(0,1fr) 14px;align-items:center;gap:12px;
+  width:100%;text-align:left;cursor:pointer;background:none;border:none;border-bottom:1px solid var(--line);
+  padding:12px 13px;font-family:var(--body);color:var(--fg);position:relative;transition:background .2s;
+}
+.lvl::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--blue);
+  transform:scaleY(0);transition:transform .26s cubic-bezier(.2,.7,.3,1);
+}
+.lvl:hover{background:var(--panel-2)}
+.lvl[aria-expanded="true"]{background:var(--panel-2)}
+.lvl[aria-expanded="true"]::before{transform:scaleY(1)}
+.lvl .n{font-family:var(--display);font-size:22px;font-weight:800;color:var(--fg-dim);line-height:1;transition:color .2s}
+.lvl[aria-expanded="true"] .n,.lvl:hover .n{color:var(--blue)}
+.lvl .t{font-size:13.5px;font-weight:600;line-height:1.25;min-width:0}
+.lvl .t i{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;color:var(--fg-dim);margin-top:3px;text-transform:uppercase}
+.lvl .c{width:14px;height:14px;color:var(--fg-dim);transition:transform .26s}
+.lvl[aria-expanded="true"] .c{transform:rotate(90deg);color:var(--blue)}
+.lb{border-bottom:1px solid var(--line);background:var(--bg);padding:14px 13px;font-size:13.5px;color:var(--fg-mid);line-height:1.55}
+.lb .tg{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
+.lb .tg span{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line-2);padding:3px 7px;color:var(--fg-mid)}
+.stk-f{padding:9px 13px;display:flex;align-items:center;gap:8px;background:var(--panel-2)}
+.stk-f svg{width:12px;height:12px;color:var(--teal)}
+
+/* ---------- ticker ---------- */
+.tick{border-bottom:1px solid var(--line);background:var(--panel);overflow:hidden;padding-block:11px}
+.tick-in{display:flex;gap:0;width:max-content;animation:sl 42s linear infinite}
+.tick:hover .tick-in{animation-play-state:paused}
+@keyframes sl{to{transform:translateX(-50%)}}
+.tick-in i{
+  font-style:normal;font-family:var(--mono);font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--fg-mid);padding:0 26px;white-space:nowrap;display:flex;align-items:center;gap:26px;
+}
+.tick-in i::after{content:"";width:3px;height:3px;background:var(--line-2)}
+.tick-in i b{color:var(--fg);font-weight:600}
+
+/* ---------- bandas ---------- */
+.band{padding-block:clamp(52px,6.5vw,96px);border-bottom:1px solid var(--line)}
+.band--p{background:var(--panel)}
+.sh{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,46ch);gap:clamp(20px,3.5vw,48px);align-items:end;margin-bottom:clamp(28px,3.6vw,46px)}
+.sh h2{font-size:clamp(34px,5.6vw,68px);letter-spacing:-.008em}
+.sh .idx{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--blue);display:block;margin-bottom:12px}
+.sh p{color:var(--fg-mid);font-size:15px;line-height:1.6}
+
+/* servicios */
+.svcs{border:1px solid var(--line);background:var(--panel)}
+.svc{display:grid;grid-template-columns:62px minmax(0,1.05fr) minmax(0,1.25fr);gap:clamp(14px,2.4vw,34px);padding:clamp(20px,2.6vw,30px) clamp(16px,2.2vw,26px);border-bottom:1px solid var(--line);position:relative;transition:background .25s}
+.svc:last-child{border-bottom:none}
+.svc:hover{background:var(--panel-2)}
+.svc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--blue);transform:scaleY(0);transform-origin:top;transition:transform .3s cubic-bezier(.2,.7,.3,1)}
+.svc:hover::before{transform:scaleY(1)}
+.svc .lv{font-family:var(--display);font-size:clamp(26px,3vw,38px);font-weight:800;color:var(--line-2);line-height:.9;transition:color .25s;letter-spacing:-.01em}
+.svc:hover .lv{color:var(--blue)}
+.svc h3{font-size:clamp(23px,2.7vw,32px);margin-bottom:9px}
+.svc .d{font-size:14px;color:var(--fg-mid);line-height:1.55}
+.svc ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;align-content:start}
+.svc li{font-size:13.5px;color:var(--fg-mid);display:grid;grid-template-columns:14px minmax(0,1fr);gap:9px;line-height:1.45}
+.svc li::before{content:"—";color:var(--blue);font-family:var(--mono);font-size:11px;line-height:1.7}
+
+/* sectores */
+.secs{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.sec{background:var(--panel);padding:22px 20px 20px;display:flex;flex-direction:column;gap:9px;min-width:0;position:relative;transition:background .25s}
+.sec:hover{background:var(--panel-2)}
+.sec .num{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--fg-dim)}
+.sec h4{font-size:26px}
+.sec p{font-size:13.5px;color:var(--fg-mid);line-height:1.5}
+.sec .kv{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--teal);line-height:1.6}
+
+/* tecnologías */
+.tt{border:1px solid var(--line);background:var(--panel)}
+.tr{display:grid;grid-template-columns:118px minmax(0,1fr);border-bottom:1px solid var(--line);transition:background .25s}
+.tr:last-child{border-bottom:none}
+.tr:hover{background:var(--panel-2)}
+.tr .l{padding:17px 15px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:3px;justify-content:center;background:var(--panel-2)}
+.tr .l b{font-family:var(--display);font-size:30px;font-weight:800;color:var(--blue);line-height:.9}
+.tr .l span{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-dim)}
+.tr .r{padding:14px 15px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;min-width:0}
+.chip{display:flex;flex-direction:column;gap:2px;text-decoration:none;border:1px solid var(--line-2);padding:8px 12px;min-width:0;transition:border-color .2s,transform .2s,background .2s;background:var(--bg)}
+.chip:hover{border-color:var(--blue);transform:translateY(-2px);background:var(--panel-3)}
+.chip b{font-size:13px;font-weight:600;line-height:1.2}
+.chip span{font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);letter-spacing:.04em}
+
+/* cifras */
+.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.m{background:var(--panel);padding:24px 19px 21px;min-width:0;position:relative;overflow:hidden}
+.m .bar{position:absolute;left:0;bottom:0;height:2px;background:var(--blue);width:0;transition:width 1.1s cubic-bezier(.2,.7,.3,1)}
+.m b{display:block;font-family:var(--display);font-size:clamp(46px,6vw,66px);font-weight:800;color:var(--fg);line-height:.88;font-variant-numeric:tabular-nums;letter-spacing:-.018em}
+.m b i{font-style:normal;color:var(--blue);font-size:.55em;vertical-align:.35em;margin-right:2px}
+.m span{display:block;margin-top:11px;font-size:12.5px;color:var(--fg-mid);line-height:1.4}
+
+/* casos */
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.cs{background:var(--panel);padding:22px 20px;display:flex;flex-direction:column;gap:11px;min-width:0;position:relative}
+.cs .ph{position:absolute;top:0;right:0;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--bg);background:var(--amber);padding:3px 8px}
+.cs .st{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-dim)}
+.cs h4{font-size:25px;padding-right:62px}
+.cs p{font-size:13.5px;color:var(--fg-mid);line-height:1.5}
+.cs .rs{display:flex;gap:22px;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.cs .rs b{display:block;font-family:var(--display);font-size:30px;color:var(--line-2);line-height:1}
+.cs .rs span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-top:4px}
+
+/* I+D */
+.rdw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,380px);gap:clamp(24px,4vw,52px);align-items:start}
+.rdl{display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+.rd{background:var(--panel);padding:19px 20px;display:grid;grid-template-columns:52px minmax(0,1fr);gap:16px;align-items:start;transition:background .25s}
+.rd:hover{background:var(--panel-2)}
+.rd .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--blue);line-height:1.5;border-right:1px solid var(--line);padding-right:12px;min-height:100%}
+.rd b{display:block;font-size:14.5px;font-weight:600;line-height:1.3}
+.rd span{display:block;font-size:13px;color:var(--fg-mid);margin-top:5px;line-height:1.5}
+.note{border:1px solid var(--blue);background:var(--blue-dim);padding:22px 20px}
+.note h4{font-size:24px;color:var(--fg);margin-bottom:10px}
+.note p{font-size:13.5px;color:var(--fg-mid);line-height:1.55}
+.note .bg{font-family:var(--display);font-size:62px;font-weight:800;color:var(--blue);line-height:.9;margin:16px 0 6px;font-variant-numeric:tabular-nums}
+
+/* contacto */
+.cband{background:var(--panel);border-bottom:1px solid var(--line)}
+.cband .wrap{padding-block:clamp(48px,6vw,86px)}
+.cgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,430px);gap:clamp(30px,4.5vw,58px);align-items:start}
+.cband h2{font-size:clamp(36px,5.6vw,70px);letter-spacing:-.01em}
+.cband .sub{margin-top:18px;font-size:16px;color:var(--fg-mid);max-width:46ch;line-height:1.56}
+.ci{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:28px}
+.ci div{background:var(--bg);padding:14px 16px}
+.ci .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--fg-dim)}
+.ci .v{font-size:14.5px;margin-top:4px;line-height:1.45;word-break:break-word}
+.ci .v a{color:var(--blue);text-decoration:none;border-bottom:1px solid var(--line-2)}
+.ci .v a:hover{border-color:var(--blue)}
+.form{border:1px solid var(--line);background:var(--bg);padding:24px 22px}
+.form h3{font-size:27px;margin-bottom:6px}
+.form .hint{font-size:13px;color:var(--fg-mid);margin-bottom:20px;line-height:1.5}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fl{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-width:0}
+.fl label{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-dim)}
+.fl input,.fl select,.fl textarea{
+  font-family:var(--body);font-size:14px;color:var(--fg);background:var(--panel);
+  border:1px solid var(--line-2);padding:11px 12px;width:100%;border-radius:0;
+  transition:border-color .18s,box-shadow .18s;
+}
+.fl input:focus,.fl select:focus,.fl textarea:focus{outline:none;border-color:var(--blue);box-shadow:inset 0 -2px 0 var(--blue)}
+.fl textarea{resize:vertical;min-height:88px}
+.form .btn--p{width:100%;justify-content:center;margin-top:4px}
+.ok{display:none;margin-top:13px;padding:12px 13px;border:1px solid var(--teal);font-size:13px;line-height:1.5;color:var(--fg)}
+.ok.on{display:block}
+
+/* pie */
+.foot{padding-block:32px;background:var(--bg)}
+.fg{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+.foot p{font-size:12.5px;color:var(--fg-dim);line-height:1.5}
+
+/* revelado al hacer scroll: parte visible, nunca en opacidad cero */
+.rv{opacity:.52;transform:translateY(16px);transition:opacity .65s cubic-bezier(.2,.7,.3,1),transform .65s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1;transform:none}
+
+@media (max-width:900px){
+  .hgrid,.rdw,.cgrid,.sh{grid-template-columns:minmax(0,1fr)}
+  .sh{gap:16px}
+  .svc{grid-template-columns:44px minmax(0,1fr)}
+  .svc ul{grid-column:2}
+  .tr{grid-template-columns:minmax(0,1fr)}
+  .tr .l{border-right:none;border-bottom:1px solid var(--line);flex-direction:row;align-items:baseline;gap:9px}
+  .nlinks a:not(.btn){display:none}
+}
+@media (max-width:520px){ .fr{grid-template-columns:minmax(0,1fr)} }
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  h1 .ln>span{transform:none}
+  .rv{opacity:1;transform:none}
+}
+</style>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><i>Control</i><b>SI</b></a>
+    <nav class="nlinks">
+      <a href="#arq">Arquitectura</a>
+      <a href="#svc">Servicios</a>
+      <a href="#sec">Sectores</a>
+      <a href="#tec">Tecnologías</a>
+      <a href="#idi">I+D+i</a>
+      <a class="btn btn--p btn--sm" href="#con"><span>Diagnóstico</span></a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <canvas id="sig" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <div class="hgrid">
+      <div>
+        <div class="hmeta">
+          <span class="dot live" aria-hidden="true"></span>
+          <span class="tag">Control System Integration S.A.C. · Lima · operando desde 2001</span>
+        </div>
+        <h1>
+          <span class="ln"><span>Del sensor</span></span>
+          <span class="ln"><span>a la</span></span>
+          <span class="ln"><span><em>decisión</em></span></span>
+        </h1>
+        <p class="lede">Empresa tecnológica <b>verticalmente integrada</b> en la Industria 4.0. Cubrimos los cinco niveles de la arquitectura ISA-95, de la instrumentación en campo a la automatización cognitiva en la capa de negocio. Un integrador, una arquitectura, una responsabilidad.</p>
+        <div class="cta">
+          <a class="btn btn--p" href="#con"><span>Agendar diagnóstico</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn btn--g" href="#arq"><span>Ver la arquitectura</span></a>
+        </div>
+      </div>
+
+      <div class="stk mk">
+        <div class="stk-h">
+          <span class="tag">Arquitectura ISA-95</span>
+          <span class="tag" style="color:var(--teal)">Cobertura L0–L4</span>
+        </div>
+        <div id="stack"></div>
+        <div class="stk-f">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+          <span class="tag">Dato de campo → contexto → decisión</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="tick" aria-hidden="true">
+  <div class="tick-in" id="tk"></div>
+</div>
+
+<section class="band band--p" id="arq">
+  <div class="wrap">
+    <div class="sh rv">
+      <div>
+        <span class="idx">[ 01 ] Planteamiento</span>
+        <h2>Qué significa<br>integración vertical</h2>
+      </div>
+      <p>La mayoría de proveedores resuelve un nivel y deja el resto a terceros: el instrumentista no habla con el de SCADA, el de SCADA no habla con el de analítica, y el dato muere en el camino. ControlSI diseña, implementa y mantiene la cadena completa, de modo que el valor del dato se conserva desde el transmisor hasta el tablero de dirección.</p>
+    </div>
+
+    <div class="svcs rv" id="svc">
+      <article class="svc">
+        <div class="lv">L1·2</div>
+        <div>
+          <h3>Automatización industrial</h3>
+          <p class="d">Control de procesos sobre plataformas Rockwell Automation, del lazo de control a la red industrial completa.</p>
+        </div>
+        <ul>
+          <li><span>Programación y migración de PLC, DCS y sistemas de seguridad</span></li>
+          <li><span>Arquitecturas SCADA y HMI avanzados de control recíproco</span></li>
+          <li><span>Redes industriales, integración OPC UA y buses de campo</span></li>
+          <li><span>Puesta en marcha, sintonía de lazos y soporte post-arranque</span></li>
+        </ul>
+      </article>
+
+      <article class="svc">
+        <div class="lv">L2·3</div>
+        <div>
+          <h3>Inteligencia operativa</h3>
+          <p class="d">El historiador de planta como fuente única de verdad: contexto, trazabilidad y tiempo real sobre AVEVA PI System e IDboxRT.</p>
+        </div>
+        <ul>
+          <li><span>Implementación y migración de PI System (AVEVA / OSIsoft)</span></li>
+          <li><span>Modelo de activos, jerarquías y Asset Framework</span></li>
+          <li><span>Tableros operativos en tiempo real por área y por turno</span></li>
+          <li><span>Indicadores de proceso: OEE, disponibilidad, rendimiento, calidad</span></li>
+        </ul>
+      </article>
+
+      <article class="svc">
+        <div class="lv">L3</div>
+        <div>
+          <h3>Analítica de data industrial</h3>
+          <p class="d">Del dato histórico al modelo predictivo, con ingeniería de datos pensada para series de tiempo de proceso.</p>
+        </div>
+        <ul>
+          <li><span>Pipelines de series temporales y data lakes industriales</span></li>
+          <li><span>Mantenimiento predictivo y detección temprana de anomalías</span></li>
+          <li><span>Modelos de optimización de proceso y consumo energético</span></li>
+          <li><span>Inteligencia de negocio sobre LinceBI y cómputo científico en Julia</span></li>
+        </ul>
+      </article>
+
+      <article class="svc">
+        <div class="lv">L0·1</div>
+        <div>
+          <h3>EdgeAI y Edge Computing</h3>
+          <p class="d">Inferencia en el borde, donde la latencia y la conectividad no permiten depender de la nube: planta, mina, pozo.</p>
+        </div>
+        <ul>
+          <li><span>Orquestación de nodos de borde con Barbara</span></li>
+          <li><span>Visión artificial para inspección, conteo y seguridad operacional</span></li>
+          <li><span>Despliegue de modelos sobre equipamiento industrial certificado</span></li>
+          <li><span>Conectividad robusta: fibra SGRWin y terminales JLT Mobile</span></li>
+        </ul>
+      </article>
+
+      <article class="svc">
+        <div class="lv">L3·4</div>
+        <div>
+          <h3>AIIoT y automatización cognitiva</h3>
+          <p class="d">Sistemas que no solo reportan: interpretan el estado del proceso y recomiendan o ejecutan la acción correctiva.</p>
+        </div>
+        <ul>
+          <li><span>Algoritmos cognitivos integrados al lazo de control</span></li>
+          <li><span>Asistentes de operación sobre el contexto real de planta</span></li>
+          <li><span>Cierre automático de lazos de decisión operativa</span></li>
+          <li><span>Interfaces HMI de control recíproco humano-máquina</span></li>
+        </ul>
+      </article>
+
+      <article class="svc">
+        <div class="lv">TRV</div>
+        <div>
+          <h3>Investigación y proyectos</h3>
+          <p class="d">Equipo de ingenieros y científicos dedicado a investigación aplicada, con acceso a marcos de financiamiento en Perú y Europa.</p>
+        </div>
+        <ul>
+          <li><span>Proyectos I+D+i acogidos a la Ley N.° 30309</span></li>
+          <li><span>Formulación bajo Horizonte Europa y CDTI de España</span></li>
+          <li><span>Pruebas de concepto y escalamiento a producción</span></li>
+          <li><span>Transferencia tecnológica y capacitación vía CSI Open Academy</span></li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="sec">
+  <div class="wrap">
+    <div class="sh rv">
+      <div>
+        <span class="idx">[ 02 ] Dominio</span>
+        <h2>Sectores que<br>atendemos</h2>
+      </div>
+      <p>Más de 15 sectores económicos e industriales. Cada uno impone su propia física, su propia normativa y su propia tolerancia al error; la arquitectura se diseña a partir de eso, no al revés.</p>
+    </div>
+    <div class="secs rv">
+      <article class="sec"><span class="num">01</span><h4>Minería</h4><p>Concentradoras, chancado, molienda y relaveras. Operación continua con instrumentación expuesta y conectividad difícil en interior mina.</p><div class="kv">Disponibilidad · Tonelaje · Ley de cabeza</div></article>
+      <article class="sec"><span class="num">02</span><h4>Hidrocarburos</h4><p>Refinación, almacenamiento y transporte. Entornos clasificados, medición fiscal y requisitos de seguridad funcional.</p><div class="kv">Balance volumétrico · SIS · Custody transfer</div></article>
+      <article class="sec"><span class="num">03</span><h4>Cemento</h4><p>Hornos, molinos y despacho. Procesos térmicos de alta inercia donde la optimización energética define el margen.</p><div class="kv">kcal/kg clínker · kWh/t · Marcha de horno</div></article>
+      <article class="sec"><span class="num">04</span><h4>Alimentos</h4><p>Líneas de proceso y envasado con trazabilidad de lote, cambios de formato frecuentes y exigencia sanitaria.</p><div class="kv">OEE · Trazabilidad de lote · Merma</div></article>
+      <article class="sec"><span class="num">05</span><h4>Energía</h4><p>Generación, subestaciones y distribución. Telemetría dispersa geográficamente y requisitos de despacho en tiempo real.</p><div class="kv">Disponibilidad · Calidad de energía</div></article>
+      <article class="sec"><span class="num">06</span><h4>Agua</h4><p>Captación, plantas de tratamiento y redes. Telecontrol sobre territorios extensos con infraestructura heterogénea.</p><div class="kv">Caudal · Presión de red · Agua no facturada</div></article>
+    </div>
+  </div>
+</section>
+
+<section class="band band--p" id="tec">
+  <div class="wrap">
+    <div class="sh rv">
+      <div>
+        <span class="idx">[ 03 ] Plataformas</span>
+        <h2>Tecnologías<br>por nivel</h2>
+      </div>
+      <p>Nuestras certificaciones y acuerdos de partner no son un muro de logos: cada plataforma ocupa un lugar definido en la arquitectura. Así se lee qué tecnología resuelve qué nivel.</p>
+    </div>
+    <div class="tt rv">
+      <div class="tr">
+        <div class="l"><b>L4</b><span>Negocio</span></div>
+        <div class="r">
+          <a class="chip" href="https://lincebi.com/" target="_blank" rel="noopener"><b>LinceBI</b><span>Partner de desarrollo avanzado</span></a>
+          <a class="chip" href="https://julialang.org/" target="_blank" rel="noopener"><b>Julia</b><span>Cómputo científico</span></a>
+        </div>
+      </div>
+      <div class="tr">
+        <div class="l"><b>L3</b><span>Operaciones</span></div>
+        <div class="r">
+          <a class="chip" href="https://www.aveva.com/es-es/products/aveva-pi-system/" target="_blank" rel="noopener"><b>AVEVA PI System</b><span>Certified System Integrator</span></a>
+          <a class="chip" href="https://idboxrt.com/" target="_blank" rel="noopener"><b>IDboxRT</b><span>Partner de desarrollo avanzado</span></a>
+        </div>
+      </div>
+      <div class="tr">
+        <div class="l"><b>L2</b><span>Supervisión</span></div>
+        <div class="r">
+          <a class="chip" href="https://www.rockwellautomation.com/en-us.html" target="_blank" rel="noopener"><b>Rockwell Automation</b><span>Silver System Integrator</span></a>
+        </div>
+      </div>
+      <div class="tr">
+        <div class="l"><b>L1</b><span>Control</span></div>
+        <div class="r">
+          <a class="chip" href="https://www.barbara.tech/" target="_blank" rel="noopener"><b>Barbara</b><span>Partner de desarrollo avanzado</span></a>
+          <a class="chip" href="https://jltmobile.com/" target="_blank" rel="noopener"><b>JLT Mobile</b><span>Cómputo industrial</span></a>
+        </div>
+      </div>
+      <div class="tr">
+        <div class="l"><b>L0</b><span>Campo</span></div>
+        <div class="r">
+          <a class="chip" href="https://accutroninstruments.com/" target="_blank" rel="noopener"><b>Accutron Instruments</b><span>Distribuidor autorizado</span></a>
+          <a class="chip" href="https://www.sgrwin.com/es/" target="_blank" rel="noopener"><b>SGRWin</b><span>Redes de fibra industrial</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sh rv">
+      <div>
+        <span class="idx">[ 04 ] Trayectoria</span>
+        <h2>ControlSI<br>en cifras</h2>
+      </div>
+      <p>Acumulado desde el año 2001 en el mercado peruano.</p>
+    </div>
+    <div class="mg rv" id="mg">
+      <div class="m"><b><i>+</i><u data-to="24" style="text-decoration:none">0</u></b><span>Años de presencia en el mercado peruano</span><div class="bar" data-w="100"></div></div>
+      <div class="m"><b><i>+</i><u data-to="15" style="text-decoration:none">0</u></b><span>Sectores económicos e industriales atendidos</span><div class="bar" data-w="62"></div></div>
+      <div class="m"><b><i>+</i><u data-to="450" style="text-decoration:none">0</u></b><span>Proyectos ejecutados por nuestra empresa</span><div class="bar" data-w="78"></div></div>
+      <div class="m"><b><i>+</i><u data-to="2500" style="text-decoration:none">0</u></b><span>Proyectos ejecutados con socios en el mundo</span><div class="bar" data-w="94"></div></div>
+      <div class="m"><b><i>+</i><u data-to="100" style="text-decoration:none">0</u></b><span>Clientes industriales TOP atendidos</span><div class="bar" data-w="70"></div></div>
+      <div class="m"><b><i>+</i><u data-to="30" style="text-decoration:none">0</u> M</b><span>Dólares facturados y de valor agregado</span><div class="bar" data-w="85"></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band--p" id="cas">
+  <div class="wrap">
+    <div class="sh rv">
+      <div>
+        <span class="idx">[ 05 ] Evidencia</span>
+        <h2>Casos de<br>aplicación</h2>
+      </div>
+      <p>La sección que más pesa en una decisión de compra industrial y la que hoy no existe en el sitio. La estructura está lista; falta completarla con proyectos reales, cifras verificadas y autorización del cliente.</p>
+    </div>
+    <div class="cg rv">
+      <article class="cs"><span class="ph">Ejemplo</span><span class="st">Minería · Concentradora</span><h4>Historiador unificado</h4><p>Estructura sugerida: situación inicial, arquitectura desplegada, nivel ISA-95 intervenido, plazo de ejecución y resultado medido.</p><div class="rs"><div><b>—</b><span>Indicador 1</span></div><div><b>—</b><span>Indicador 2</span></div></div></article>
+      <article class="cs"><span class="ph">Ejemplo</span><span class="st">Cemento · Horno</span><h4>Optimización energética</h4><p>Reemplazar por un proyecto real. Un caso con cifra verificable convierte mucho más que tres párrafos de descripción corporativa.</p><div class="rs"><div><b>—</b><span>Indicador 1</span></div><div><b>—</b><span>Indicador 2</span></div></div></article>
+      <article class="cs"><span class="ph">Ejemplo</span><span class="st">Alimentos · Envasado</span><h4>Visión artificial</h4><p>Cuando el cliente no autoriza su nombre, funciona igual describiendo el sector, la escala de planta y el resultado.</p><div class="rs"><div><b>—</b><span>Indicador 1</span></div><div><b>—</b><span>Indicador 2</span></div></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="idi">
+  <div class="wrap">
+    <div class="sh rv">
+      <div>
+        <span class="idx">[ 06 ] I+D+i</span>
+        <h2>Investigación<br>y desarrollo</h2>
+      </div>
+      <p>La investigación aplicada y el desarrollo tecnológico son actividades principales de ControlSI, con un equipo de ingenieros y científicos que trabaja a nivel mundial sobre problemas concretos de Industria 4.0.</p>
+    </div>
+    <div class="rdw rv">
+      <div class="rdl">
+        <div class="rd">
+          <div class="k">PE<br>30309</div>
+          <div><b>Proyectos I+D+i bajo la Ley N.° 30309</b><span>Formulamos y ejecutamos proyectos calificados ante el CONCYTEC, de modo que la inversión en innovación acceda a la deducción tributaria adicional que establece la norma.</span></div>
+        </div>
+        <div class="rd">
+          <div class="k">EU<br>HE</div>
+          <div><b>Horizonte Europa</b><span>Participación en consorcios de investigación del programa marco europeo, con acceso a resultados y tecnología antes de su llegada al mercado regional.</span></div>
+        </div>
+        <div class="rd">
+          <div class="k">ES<br>CDTI</div>
+          <div><b>CDTI de España</b><span>Proyectos bajo el marco del Centro para el Desarrollo Tecnológico y la Innovación, que respalda el desarrollo conjunto con socios tecnológicos europeos.</span></div>
+        </div>
+      </div>
+      <aside class="note mk">
+        <h4>Ley 30309 en la práctica</h4>
+        <p>Para una gerencia industrial, un proyecto de automatización calificado como I+D+i deja de ser únicamente un gasto de capital y pasa a tener un tratamiento tributario distinto.</p>
+        <div class="bg">+24</div>
+        <p class="tag">Años formulando proyectos tecnológicos</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="cband" id="con">
+  <div class="wrap">
+    <div class="cgrid">
+      <div class="rv">
+        <span class="idx" style="font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--blue);display:block;margin-bottom:12px">[ 07 ] Contacto</span>
+        <h2>Conversemos<br>sobre su operación</h2>
+        <p class="sub">Un diagnóstico inicial sin costo sobre el estado de su arquitectura: qué niveles están cubiertos, dónde se pierde el dato y qué habilitaría la capa siguiente. Respondemos dentro de las 24 horas.</p>
+        <div class="ci">
+          <div><div class="k">Dirección</div><div class="v">Av. República de Colombia N.° 159 A · San Isidro, Lima 15046</div></div>
+          <div><div class="k">Correo</div><div class="v mono">informes@controlsi.com.pe</div></div>
+          <div><div class="k">Teléfono</div><div class="v mono">(51) 771-5772</div></div>
+          <div><div class="k">LinkedIn</div><div class="v"><a href="https://www.linkedin.com/" target="_blank" rel="noopener">ControlSI Industry 4.0 Experts</a></div></div>
+        </div>
+      </div>
+
+      <form class="form mk rv" id="f" novalidate>
+        <h3>Solicitar diagnóstico</h3>
+        <p class="hint">Mientras más contexto nos dé sobre su planta, más concreta será la primera conversación.</p>
+        <div class="fr">
+          <div class="fl"><label for="c-nom">Nombres</label><input id="c-nom" name="nom" type="text" autocomplete="given-name" required></div>
+          <div class="fl"><label for="c-ape">Apellidos</label><input id="c-ape" name="ape" type="text" autocomplete="family-name" required></div>
+        </div>
+        <div class="fr">
+          <div class="fl"><label for="c-emp">Empresa</label><input id="c-emp" name="emp" type="text" autocomplete="organization"></div>
+          <div class="fl"><label for="c-car">Cargo</label><input id="c-car" name="car" type="text" autocomplete="organization-title"></div>
+        </div>
+        <div class="fr">
+          <div class="fl"><label for="c-mail">Correo corporativo</label><input id="c-mail" name="mail" type="email" autocomplete="email" required></div>
+          <div class="fl"><label for="c-tel">Teléfono</label><input id="c-tel" name="tel" type="tel" autocomplete="tel" placeholder="+51"></div>
+        </div>
+        <div class="fr">
+          <div class="fl"><label for="c-sec">Sector</label>
+            <select id="c-sec" name="sec"><option value="">Seleccione…</option><option>Minería</option><option>Hidrocarburos</option><option>Cemento y materiales</option><option>Alimentos y bebidas</option><option>Energía</option><option>Agua y saneamiento</option><option>Otro</option></select>
+          </div>
+          <div class="fl"><label for="c-niv">Nivel de interés</label>
+            <select id="c-niv" name="niv"><option value="">Seleccione…</option><option>L0–L1 · Instrumentación y control</option><option>L2 · SCADA y supervisión</option><option>L3 · Inteligencia operativa</option><option>L4 · Automatización cognitiva</option><option>Arquitectura completa</option></select>
+          </div>
+        </div>
+        <div class="fl"><label for="c-msg">Describa el reto operativo</label><textarea id="c-msg" name="msg" placeholder="Ej.: tenemos PI System pero operaciones no lo usa; los reportes de turno siguen saliendo en Excel."></textarea></div>
+        <button class="btn btn--p" type="submit"><span>Enviar solicitud</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <div class="ok" id="ok" role="status"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap fg">
+    <a class="brand" href="#top"><i>Control</i><b>SI</b></a>
+    <p>Control System Integration S.A.C. · Industry 4.0 Experts<br>San Isidro, Lima · Perú</p>
+    <p class="tag">Propuesta de rediseño · no es el sitio en producción</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var RM = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- pila ISA-95 ---------- */
+  var LV = [
+    {n:"L4",t:"Planeamiento de negocio",s:"ERP · Dirección",d:"Automatización cognitiva sobre el contexto operativo: sistemas que interpretan el estado de la planta y recomiendan o ejecutan la decisión, en lugar de limitarse a reportar.",k:["Automatización cognitiva","Agentes de decisión","LinceBI"]},
+    {n:"L3",t:"Gestión de operaciones",s:"MES · Historiador",d:"Inteligencia operativa y analítica industrial de datos. El historiador de planta se convierte en fuente única de verdad, con modelo de activos y series de tiempo contextualizadas.",k:["AVEVA PI System","IDboxRT","Analítica predictiva"]},
+    {n:"L2",t:"Supervisión y control",s:"SCADA · HMI",d:"Arquitecturas SCADA y HMI avanzados de control recíproco, sobre plataformas Rockwell Automation con integración por OPC UA.",k:["Rockwell Automation","SCADA","OPC UA"]},
+    {n:"L1",t:"Control de proceso",s:"PLC · DCS",d:"Programación, migración y sintonía de lazos de control, con capacidad de inferencia en el borde donde la latencia o la conectividad lo exigen.",k:["PLC / DCS","EdgeAI · Barbara","Redes industriales"]},
+    {n:"L0",t:"Proceso e instrumentación",s:"Campo · Sensórica",d:"Instrumentación, sensórica y conectividad en condiciones reales de planta, mina y pozo: donde empieza el dato y donde más barato resulta asegurar su calidad.",k:["Accutron Instruments","Visión artificial","Fibra SGRWin"]}
+  ];
+  var host = document.getElementById("stack");
+  if(host){
+    LV.forEach(function(L,i){
+      var open = i === 1;
+      var b = document.createElement("button");
+      b.type="button"; b.className="lvl"; b.id="lv-"+L.n;
+      b.setAttribute("aria-expanded", open?"true":"false");
+      b.setAttribute("aria-controls","bd-"+L.n);
+      b.innerHTML='<span class="n">'+L.n+'</span><span class="t">'+L.t+'<i>'+L.s+'</i></span>'+
+        '<svg class="c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+      var p = document.createElement("div");
+      p.className="lb"; p.id="bd-"+L.n; p.setAttribute("role","region"); p.setAttribute("aria-labelledby",b.id);
+      p.innerHTML=L.d+'<div class="tg">'+L.k.map(function(x){return "<span>"+x+"</span>";}).join("")+'</div>';
+      p.hidden = !open;
+      b.addEventListener("click",function(){
+        var was = b.getAttribute("aria-expanded")==="true";
+        host.querySelectorAll(".lvl").forEach(function(o){o.setAttribute("aria-expanded","false");});
+        host.querySelectorAll(".lb").forEach(function(o){o.hidden=true;});
+        if(!was){ b.setAttribute("aria-expanded","true"); p.hidden=false; }
+      });
+      host.appendChild(b); host.appendChild(p);
+    });
+  }
+
+  /* ---------- cinta ---------- */
+  var TK = ["Silver System Integrator <b>Rockwell Automation</b>","Certified System Integrator <b>AVEVA PI System</b>",
+            "Partner de desarrollo <b>IDboxRT</b>","Partner de desarrollo <b>Barbara</b>","Partner de desarrollo <b>LinceBI</b>",
+            "Distribuidor autorizado <b>Accutron Instruments</b>","Redes de fibra <b>SGRWin</b>","Cómputo industrial <b>JLT Mobile</b>"];
+  var tk = document.getElementById("tk");
+  if(tk){
+    var one = TK.map(function(s){return "<i>"+s+"</i>";}).join("");
+    tk.innerHTML = one + one;
+  }
+
+  /* ---------- revelado ---------- */
+  var rvs = document.querySelectorAll(".rv");
+  if("IntersectionObserver" in window && !RM){
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+    },{rootMargin:"0px 0px -8% 0px",threshold:.08});
+    rvs.forEach(function(el){ io.observe(el); });
+  } else {
+    rvs.forEach(function(el){ el.classList.add("in"); });
+  }
+
+  /* ---------- contadores ---------- */
+  var mg = document.getElementById("mg");
+  if(mg){
+    var run = function(){
+      mg.querySelectorAll("u[data-to]").forEach(function(u){
+        var to = parseInt(u.getAttribute("data-to"),10), t0 = null, dur = 1100;
+        if(RM){ u.textContent = to; return; }
+        function step(ts){
+          if(!t0) t0 = ts;
+          var k = Math.min(1,(ts-t0)/dur), e = 1-Math.pow(1-k,3);
+          u.textContent = Math.round(to*e);
+          if(k<1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+      mg.querySelectorAll(".bar").forEach(function(b){ b.style.width = b.getAttribute("data-w")+"%"; });
+    };
+    if("IntersectionObserver" in window){
+      var io2 = new IntersectionObserver(function(es){
+        es.forEach(function(e){ if(e.isIntersecting){ run(); io2.disconnect(); } });
+      },{threshold:.25});
+      io2.observe(mg);
+    } else { run(); }
+  }
+
+  /* ---------- hero: trazas de señal por nivel ---------- */
+  var cv = document.getElementById("sig");
+  if(cv && cv.getContext){
+    var cx = cv.getContext("2d"), W=0, H=0, DPR=1, t=0, raf=null, pk=[];
+    function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+    var CBLUE, CTEAL, CLINE;
+    function colors(){ CBLUE=css("--blue"); CTEAL=css("--teal"); CLINE=css("--line"); }
+    function size(){
+      DPR = Math.min(window.devicePixelRatio||1, 2);
+      var r = cv.getBoundingClientRect();
+      W = Math.max(1, Math.floor(r.width)); H = Math.max(1, Math.floor(r.height));
+      cv.width = W*DPR; cv.height = H*DPR;
+      cx.setTransform(DPR,0,0,DPR,0,0);
+    }
+    function noise(x,s){ return Math.sin(x*s)*0.5 + Math.sin(x*s*2.3+1.7)*0.3 + Math.sin(x*s*5.1+0.4)*0.2; }
+    function trace(lane, y, h){
+      var amp = h*0.3, st = W>700 ? 3 : 5;
+      cx.beginPath();
+      for(var x=0; x<=W; x+=st){
+        var u = x/W, v = 0;
+        if(lane===0) v = noise(u*12+t*0.9, 3.1);
+        else if(lane===1) v = noise(u*6+t*0.7, 2.0)*0.85;
+        else if(lane===2) v = Math.round(noise(u*4+t*0.5,1.6)*3)/3*0.8;
+        else if(lane===3) v = Math.sin(u*4.2+t*0.42)*0.55 + Math.sin(u*1.6+t*0.2)*0.3;
+        else v = Math.tanh(Math.sin(u*2.1+t*0.3)*2.4)*0.6;
+        var py = y + h/2 - v*amp;
+        x===0 ? cx.moveTo(x,py) : cx.lineTo(x,py);
+      }
+      cx.stroke();
+    }
+    function draw(){
+      cx.clearRect(0,0,W,H);
+      var n = 5, lh = H/n;
+      cx.lineWidth = 1;
+      cx.strokeStyle = CLINE;
+      for(var i=1;i<n;i++){ cx.beginPath(); cx.moveTo(0,i*lh); cx.lineTo(W,i*lh); cx.stroke(); }
+      for(var L=0; L<n; L++){
+        var depth = (n-1-L)/(n-1);
+        cx.globalAlpha = 0.14 + depth*0.2;
+        cx.lineWidth = 1.2;
+        cx.strokeStyle = L>=3 ? CTEAL : CBLUE;
+        trace(L, L*lh, lh);
+      }
+      cx.globalAlpha = 1;
+      for(var p=0;p<pk.length;p++){
+        var q = pk[p];
+        q.y -= q.v;
+        if(q.y < -12){ q.y = H+12; q.x = Math.random()*W; }
+        cx.globalAlpha = 0.5;
+        cx.fillStyle = q.y < H*0.4 ? CTEAL : CBLUE;
+        cx.fillRect(q.x, q.y, 2, 7);
+      }
+      cx.globalAlpha = 1;
+      t += 0.016;
+      raf = requestAnimationFrame(draw);
+    }
+    function boot(){
+      colors(); size();
+      pk = [];
+      var count = W>900 ? 16 : 8;
+      for(var i=0;i<count;i++) pk.push({x:Math.random()*W, y:Math.random()*H, v:0.25+Math.random()*0.5});
+      if(raf) cancelAnimationFrame(raf);
+      if(RM){ draw(); cancelAnimationFrame(raf); raf=null; }
+      else draw();
+    }
+    boot();
+    var rt;
+    window.addEventListener("resize", function(){ clearTimeout(rt); rt = setTimeout(boot, 180); });
+    if(window.matchMedia){
+      var mq = window.matchMedia("(prefers-color-scheme: dark)");
+      if(mq.addEventListener) mq.addEventListener("change", function(){ setTimeout(colors, 60); });
+    }
+    document.addEventListener("visibilitychange", function(){
+      if(document.hidden){ if(raf){ cancelAnimationFrame(raf); raf=null; } }
+      else if(!raf && !RM){ draw(); }
+    });
+  }
+
+  /* ---------- formulario ---------- */
+  var f = document.getElementById("f"), ok = document.getElementById("ok");
+  if(f){
+    f.addEventListener("submit", function(e){
+      e.preventDefault();
+      var nom = document.getElementById("c-nom"), mail = document.getElementById("c-mail");
+      if(!nom.value.trim() || !mail.value.trim() || mail.value.indexOf("@") < 0){
+        ok.className = "ok on";
+        ok.style.borderColor = "var(--amber)";
+        ok.textContent = "Complete sus nombres y un correo válido para continuar.";
+        (!nom.value.trim() ? nom : mail).focus();
+        return;
+      }
+      ok.className = "ok on";
+      ok.style.borderColor = "var(--teal)";
+      ok.textContent = "Demostración de la propuesta: el formulario valida los campos pero aún no envía. En producción se conecta al CRM o al correo informes@controlsi.com.pe.";
+    });
+  }
+})();
+</script>
+
+</body></html>
